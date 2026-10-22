@@ -117,7 +117,7 @@ LIMIT 10;
 
 -- ЗАДАНИЕ Б3
 -- Ловушка 1. NULL — выполнить и объяснить результат
-SELECT count(*) FROM vacancies WHERE closed_at = NULL;
+-- SELECT count(*) FROM vacancies WHERE closed_at = NULL;
 
 SELECT count(*) FROM vacancies WHERE closed_at IS NULL;
 
@@ -316,6 +316,20 @@ GROUP BY
     e.employer_id, e.employer_name
 ORDER BY "Отклики" DESC;
 
+-- Проверяем ГринЭнерго
+SELECT 
+    v.vacancy_id,
+    v.vacancy_name,
+    v.published_at,
+    v.closed_at,
+    COUNT(r.response_id) AS "Отклики"
+FROM
+    employers e
+    LEFT JOIN vacancies v ON v.employer_id = e.employer_id
+    LEFT JOIN responses r ON r.vacancy_id = v.vacancy_id
+WHERE e.employer_id = 111 -- ГринЭнерго
+GROUP BY v.vacancy_id;
+
 -- Вывод:
 -- В первом запросе мы получили всех работодателей, даже тех, у кого нет вакансий или откликов, потому
 -- что слева стоит employers и LEFT JOIN ничего не выбрасывает. Во втором случае остаются только те,
@@ -323,7 +337,8 @@ ORDER BY "Отклики" DESC;
 -- Вакансии мы считаем через count(DISTINCT v.vacancy_id), потому что после JOIN с responses вакансия
 -- повторяется столько раз, сколько у нее откликов, и count(*) посчитал бы эти пары.
 -- В первом запросе вышло 12 работодателей, а во втором 11: пропадает "ГринЭнерго", у которой одна вакансия
--- и ноль откликов, то есть именно то, что искал HR, поэтому потеря содержательная.
+-- и ноль откликов, то есть именно то, что искал HR, поэтому потеря содержательная. Эта вакансия была открыта
+-- с 2026-04-06 до 2026-05-4, но ни одного отклика она не получила.
 -- LEFT JOIN, когда нужны все строки слева, даже без совпадений, а INNER, когда нужны только совпадения.
 
 -- ============================================================
@@ -336,6 +351,7 @@ ORDER BY "Отклики" DESC;
 
 SELECT
     date_trunc('month', created_at)::date AS "month",
+    MAX(created_at) AS "Конец месяца", -- показывает 15 августа
     COUNT(*) AS "Отклики",
     COUNT(*) FILTER (WHERE status = 'invited') AS "Приглашения",
     ROUND(
@@ -432,9 +448,9 @@ SELECT
         AVG(
             (COALESCE(v.salary_from, v.salary_to)
              + COALESCE(v.salary_to, v.salary_from))
-            / 2 -- Не совсем правильно считать среднюю зарплату делением на 2 нижней и верхней границ
+            / 2
             )
-        ) AS "Средняя зарплата",
+        ) AS "Cередина зарплатных вилок",
     ROUND(
         SUM(COALESCE(vr.responses, 0))::numeric
         / NULLIF(COUNT(*), 0),
