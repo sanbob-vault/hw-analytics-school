@@ -1,4 +1,4 @@
-name: artillery
+name: analytics
 
 services:
   postgres:
